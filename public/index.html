@@ -15,6 +15,9 @@
       align-items: center;
       padding: 20px;
     }
+    body.no-scroll {
+  overflow: hidden;
+}
 
     h1 {
       margin-bottom: 10px;
@@ -160,7 +163,7 @@
   <div id="loader">🧠✨ Creating your game...</div>
 
   <div id="frameAndExplanation">
-    <iframe id="outputFrame"></iframe>
+    <iframe id="outputFrame" onload="resizeIframe(this)" scrolling="no"></iframe>
     <div>
       <h2 style="color:#00796b">🧠 Game Explanation</h2>
       <pre id="gameExplanation"></pre>
@@ -183,6 +186,26 @@
       "A platformer where the floor is lava, and you're a marshmallow"
     ];
 
+// Detect when user clicks inside the iframe
+document.getElementById('outputFrame').addEventListener('mouseenter', () => {
+  iframeFocused = true;
+});
+
+// Detect when user moves their mouse outside the iframe
+document.getElementById('outputFrame').addEventListener('mouseleave', () => {
+  iframeFocused = false;
+});
+
+// Prevent scrolling with arrow keys or spacebar unless in iframe
+window.addEventListener('keydown', function(e) {
+  const isTyping = ['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase());
+  const scrollKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
+
+  if (!isTyping && !iframeFocused && scrollKeys.includes(e.key)) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
     function setTemplate(template, buttonElement) {
       selectedTemplate = template;
       document.querySelectorAll('.template-button').forEach(btn => btn.classList.remove('selected'));
@@ -193,6 +216,32 @@
       const random = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
       document.getElementById('gamePrompt').value = random;
     }
+
+    // some code on the frame
+    function resizeIframe(iframe) {
+  setTimeout(() => {
+    iframe.style.height = iframe.contentWindow.document.body.scrollHeight + "px";
+  }, 100); // delay ensures iframe content is fully rendered
+}
+//more frame code
+function resizeIframe(iframe) {
+  setTimeout(() => {
+    const doc = iframe.contentWindow.document;
+    iframe.style.height = doc.body.scrollHeight + "px";
+    iframe.style.width = doc.body.scrollWidth + "px";
+  }, 100);
+}
+setInterval(() => resizeIframe(document.getElementById("outputFrame")), 1000);
+
+document.getElementById('outputFrame').addEventListener('mouseenter', () => {
+  document.body.classList.add('no-scroll');
+});
+
+// Enable scrolling again when mouse leaves the iframe
+document.getElementById('outputFrame').addEventListener('mouseleave', () => {
+  document.body.classList.remove('no-scroll');
+});
+
 
     async function submitGame() {
       const prompt = document.getElementById('gamePrompt').value.trim();
