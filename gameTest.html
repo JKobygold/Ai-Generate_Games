@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>King's Defense</title>
+  <style>
+    body {
+      font-family: 'Georgia', serif;
+      text-align: center;
+      background: linear-gradient(#4b2e1d, #1a1a1a);
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      margin: 20px 0;
+    }
+
+    #game {
+      position: relative;
+      margin: 0 auto;
+      width: 800px;
+      height: 400px;
+      background: #3b2f2f url('https://i.imgur.com/0cPpg3S.png') no-repeat center/cover;
+      border: 3px solid gold;
+      overflow: hidden;
+    }
+
+    #king {
+      position: absolute;
+      bottom: 10px;
+      left: 50px;
+      width: 50px;
+      height: 80px;
+      background: url('https://i.imgur.com/d3sYyPm.png') no-repeat center/cover;
+    }
+
+    .monster {
+      position: absolute;
+      bottom: 10px;
+      width: 50px;
+      height: 80px;
+      background: url('https://i.imgur.com/RthslG7.png') no-repeat center/cover;
+    }
+
+    .sword {
+      position: absolute;
+      width: 30px;
+      height: 10px;
+      background: silver;
+      bottom: 50px;
+    }
+
+    #startBtn {
+      margin: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: gold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #startBtn:hover {
+      background: orange;
+    }
+  </style>
+</head>
+<body>
+  <h1>👑 King's Defense</h1>
+  <div id="game">
+    <div id="king"></div>
+  </div>
+  <button id="startBtn">Start Game</button>
+
+  <script>
+    const game = document.getElementById('game');
+    const startBtn = document.getElementById('startBtn');
+
+    let gameRunning = false;
+    let spawnInterval, moveMonstersInterval;
+
+    function startGame() {
+      if (gameRunning) return;
+      gameRunning = true;
+
+      spawnInterval = setInterval(spawnMonster, 2000);
+      document.addEventListener('keydown', handleKeyPress);
+    }
+
+    function spawnMonster() {
+      const monster = document.createElement('div');
+      monster.classList.add('monster');
+      monster.style.left = '800px';
+      game.appendChild(monster);
+
+      const move = setInterval(() => {
+        if (!gameRunning) return clearInterval(move);
+        let left = parseInt(monster.style.left);
+        if (left <= 50) {
+          endGame();
+          clearInterval(move);
+        } else {
+          monster.style.left = (left - 5) + 'px';
+        }
+      }, 100);
+
+      monster.dataset.moveInterval = move;
+    }
+
+    function handleKeyPress(e) {
+      if (e.code === 'Space') {
+        throwSword();
+      }
+    }
+
+    function throwSword() {
+      const sword = document.createElement('div');
+      sword.classList.add('sword');
+      sword.style.left = '90px';
+      game.appendChild(sword);
+
+      const moveSword = setInterval(() => {
+        let left = parseInt(sword.style.left);
+        if (left > 800) {
+          sword.remove();
+          clearInterval(moveSword);
+        } else {
+          sword.style.left = (left + 10) + 'px';
+          checkCollision(sword, moveSword);
+        }
+      }, 50);
+    }
+
+    function checkCollision(sword, interval) {
+      const monsters = document.querySelectorAll('.monster');
+      monsters.forEach(monster => {
+        const swordRect = sword.getBoundingClientRect();
+        const monsterRect = monster.getBoundingClientRect();
+        if (
+          swordRect.right > monsterRect.left &&
+          swordRect.left < monsterRect.right &&
+          swordRect.bottom > monsterRect.top &&
+          swordRect.top < monsterRect.bottom
+        ) {
+          clearInterval(interval);
+          sword.remove();
+          clearInterval(monster.dataset.moveInterval);
+          monster.remove();
+        }
+      });
+    }
+
+    function endGame() {
+      alert('💀 The monsters reached the king! Game Over!');
+      clearInterval(spawnInterval);
+      gameRunning = false;
+      document.removeEventListener('keydown', handleKeyPress);
+      document.querySelectorAll('.monster').forEach(monster => monster.remove());
+      document.querySelectorAll('.sword').forEach(sword => sword.remove());
+    }
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>
