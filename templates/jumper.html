@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Endless Emoji Jumper</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #87ceeb;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #cceeff;
+      border: 4px solid #444;
+    }
+
+    #instructions {
+      position: absolute;
+      top: 50px;
+      width: 100%;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #333;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 12px;
+      border-radius: 10px;
+      font-family: sans-serif;
+      z-index: 10;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div id="instructions">Press ↑ to jump, and ← → to move side to side</div>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const instructions = document.getElementById('instructions');
+
+const gravity = 0.5;
+let keys = {};
+let score = 0;
+let cameraY = 0;
+let lastPlatformLanded = null;
+
+const player = {
+  x: 400,
+  y: 500,
+  width: 40,
+  height: 40,
+  velocityY: 0,
+  jumping: false,
+  emoji: '🧍'
+};
+
+const platformWidth = 100;
+const verticalGap = 100;
+const maxHorizontalJump = 250;
+const emojis = ['🌸', '🍄', '🌟', '🐸', '🍕', '🧊', '🎈', '🌈', '💎', '🪙'];
+
+let platforms = [];
+let lastPlatformY = 550;
+let lastPlatformX = 400;
+
+let onStartPlatform = true;
+
+function generateNextPlatform() {
+  const dx = (Math.random() - 0.5) * maxHorizontalJump;
+  const newX = Math.max(0, Math.min(canvas.width - platformWidth, lastPlatformX + dx));
+  const newY = lastPlatformY - verticalGap;
+
+  platforms.push({
+    x: newX,
+    y: newY,
+    width: platformWidth,
+    height: 20,
+    emoji: emojis[Math.floor(Math.random() * emojis.length)]
+  });
+
+  lastPlatformX = newX;
+  lastPlatformY = newY;
+}
+
+function drawPlayer() {
+  ctx.font = '32px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText(player.emoji, player.x, player.y - cameraY);
+}
+
+function drawPlatforms() {
+  ctx.fillStyle = '#8B4513';
+  ctx.font = '20px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, serif';
+  for (let p of platforms) {
+    ctx.fillRect(p.x, p.y - cameraY, p.width, p.height);
+    ctx.fillText(p.emoji, p.x + p.width / 2 - 10, p.y - cameraY - 25);
+  }
+}
+
+function drawScore() {
+  ctx.fillStyle = '#000';
+  ctx.font = '20px sans-serif';
+  ctx.fillText('Platforms Reached: ' + score, 10, 10);
+}
+
+function updatePlayer() {
+  if (keys['ArrowLeft']) player.x -= 4;
+  if (keys['ArrowRight']) player.x += 4;
+
+  player.velocityY += gravity;
+  player.y += player.velocityY;
+
+  // Clamp horizontal movement
+  player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+
+  let landedThisFrame = false;
+
+  // Platform collision
+  for (let p of platforms) {
+    const isColliding =
+      player.x < p.x + p.width &&
+      player.x + player.width > p.x &&
+      player.y + player.height > p.y &&
+      player.y + player.height < p.y + 10 &&
+      player.velocityY > 0;
+
+    if (isColliding) {
+      player.y = p.y - player.height;
+      player.velocityY = 0;
+      player.jumping = false;
+      landedThisFrame = true;
+
+      if (lastPlatformLanded !== p) {
+        score += 1;
+        lastPlatformLanded = p;
+      }
+    }
+  }
+
+  // Hide instructions if player left starting platform
+  if (onStartPlatform && !landedThisFrame) {
+    onStartPlatform = false;
+    instructions.style.display = 'none';
+  }
+
+  // Camera follows after leaving platform
+  if (!onStartPlatform && player.y < cameraY + 200) {
+    cameraY = player.y - 200;
+  }
+
+  while (lastPlatformY > cameraY - 600) {
+    generateNextPlatform();
+  }
+
+  if (player.y > cameraY + canvas.height) {
+    resetGame();
+  }
+}
+
+function resetGame() {
+  player.x = 400;
+  player.y = 500;
+  player.velocityY = 0;
+  player.jumping = false;
+  cameraY = 0;
+  score = 0;
+  lastPlatformLanded = null;
+  lastPlatformY = 550;
+  lastPlatformX = 400;
+  platforms = [];
+  onStartPlatform = true;
+  instructions.style.display = 'block';
+
+  platforms.push({
+    x: player.x - 30,
+    y: player.y + player.height,
+    width: 100,
+    height: 20,
+    emoji: '🟫'
+  });
+
+  for (let i = 0; i < 20; i++) generateNextPlatform();
+}
+
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  updatePlayer();
+  drawPlatforms();
+  drawPlayer();
+  drawScore();
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if ((e.key === ' ' || e.key === 'ArrowUp') && !player.jumping) {
+    player.velocityY = -12;
+    player.jumping = true;
+    if (onStartPlatform) {
+      onStartPlatform = false;
+      instructions.style.display = 'none';
+    }
+  }
+});
+
+document.addEventListener('keyup', e => {
+  keys[e.key] = false;
+});
+
+resetGame();
+gameLoop();
+</script>
+</body>
+</html>

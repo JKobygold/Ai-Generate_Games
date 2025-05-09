@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Princess vs Dragon</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #ffe4f0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: linear-gradient(to top, #87ceeb, #ffffff);
+      border: 5px solid #880e4f;
+    }
+    #instructions {
+      background: #880e4f;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;
+      font-family: sans-serif;
+    }
+    #endScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      color: white;
+      font-size: 2em;
+      z-index: 10;
+    }
+    #playAgain {
+      margin-top: 20px;
+      font-size: 1em;
+      padding: 10px 20px;
+      background: #880e4f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="instructions">
+    ← → to move | ↑ to jump | W to throw sword 🗡️ | S to activate shield 🛡️ (1 sec) | Auto-punch when near | 5 hits = game over
+  </div>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <div id="endScreen">
+    <div id="endMessage"></div>
+    <button id="playAgain">Play Again</button>
+  </div>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const endScreen = document.getElementById('endScreen');
+    const endMessage = document.getElementById('endMessage');
+    const playAgain = document.getElementById('playAgain');
+
+    const ground = 360;
+
+    const princess = {
+      x: 100,
+      y: ground,
+      width: 30,
+      height: 30,
+      color: 'pink',
+      emoji: '👸',
+      vy: 0,
+      jumping: false,
+      lives: 5,
+      shield: false,
+    };
+
+    const dragon = {
+      x: 600,
+      y: ground,
+      width: 60,
+      height: 30,
+      color: 'green',
+      emoji: '🐉',
+      lives: 20,
+      fireballs: [],
+      direction: -1,
+    };
+
+    const gravity = 0.8;
+    const swords = [];
+    const keys = {};
+
+    function drawCharacter(char) {
+      ctx.font = '28px serif';
+      ctx.fillText(char.emoji, char.x, char.y);
+    }
+
+    function drawHealth() {
+      for (let i = 0; i < princess.lives; i++) {
+        ctx.fillText('❤️', 20 + i * 25, 30);
+      }
+      for (let i = 0; i < dragon.lives; i++) {
+        ctx.fillText('💢', 20 + i * 25, 60);
+      }
+    }
+
+    function update() {
+      if (keys['ArrowLeft']) princess.x -= 4;
+      if (keys['ArrowRight'] && princess.x + princess.width < dragon.x) princess.x += 4;
+      if (keys['ArrowUp'] && !princess.jumping) {
+        princess.vy = -12;
+        princess.jumping = true;
+      }
+
+      princess.vy += gravity;
+      princess.y += princess.vy;
+      if (princess.y >= ground) {
+        princess.y = ground;
+        princess.vy = 0;
+        princess.jumping = false;
+      }
+
+      if (Math.abs(princess.x - dragon.x) < 40 && Math.abs(princess.y - dragon.y) < 30) {
+        dragon.lives -= 0.02;
+      }
+
+      for (let fire of dragon.fireballs) {
+        fire.x -= fire.vx;
+        if (
+          fire.x < princess.x + princess.width &&
+          fire.x > princess.x &&
+          fire.y > princess.y - princess.height &&
+          fire.y < princess.y + princess.height &&
+          !fire.hit &&
+          !princess.shield
+        ) {
+          princess.lives--;
+          fire.hit = true;
+        }
+      }
+      dragon.fireballs = dragon.fireballs.filter(f => f.x > -20);
+
+      for (let sword of swords) {
+        sword.x += 6;
+        if (
+          sword.x > dragon.x &&
+          sword.x < dragon.x + dragon.width &&
+          Math.abs(sword.y - dragon.y) < 30 &&
+          !sword.hit
+        ) {
+          dragon.lives--;
+          sword.hit = true;
+        }
+      }
+
+      dragon.x += dragon.direction * 2;
+      if (dragon.x < 400 || dragon.x > 740) dragon.direction *= -1;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawHealth();
+      drawCharacter(princess);
+      drawCharacter(dragon);
+
+      ctx.fillStyle = '#654321';
+      ctx.fillRect(0, ground + 10, canvas.width, 20);
+
+      if (princess.shield) {
+        ctx.font = '20px serif';
+        ctx.fillText('🛡️', princess.x + 25, princess.y);
+      }
+
+      for (let fire of dragon.fireballs) {
+        ctx.font = '20px serif';
+        ctx.fillText('🔥', fire.x, fire.y);
+      }
+
+      for (let sword of swords) {
+        ctx.font = '20px serif';
+        ctx.fillText('🗡️', sword.x, sword.y);
+      }
+    }
+
+    let gameOver = false;
+
+    function loop() {
+      if (gameOver) return;
+      if (princess.lives <= 0) {
+        endGame("You lost! The dragon wins.");
+        return;
+      }
+      if (dragon.lives <= 0) {
+        endGame("You defeated the dragon! Victory!");
+        return;
+      }
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function endGame(message) {
+      gameOver = true;
+      endMessage.textContent = message;
+      endScreen.style.display = 'flex';
+    }
+
+    playAgain.onclick = () => {
+      window.location.reload();
+    };
+
+    setInterval(() => {
+      for (let i = 0; i < 5; i++) {
+        dragon.fireballs.push({
+          x: dragon.x,
+          y: dragon.y,
+          vx: 3 + Math.random() * 2,
+          hit: false,
+        });
+      }
+    }, 4000);
+
+    document.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      if (e.key === 's') {
+        princess.shield = true;
+        setTimeout(() => princess.shield = false, 1000);
+      }
+      if (e.key === 'w') {
+        swords.push({ x: princess.x + 20, y: princess.y, hit: false });
+      }
+    });
+
+    document.addEventListener('keyup', e => {
+      keys[e.key] = false;
+    });
+
+    loop();
+  </script>
+</body>
+</html>

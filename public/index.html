@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Generator</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(180deg, #e0f7fa, #ffffff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-size: 2rem;
+      color: #00796b;
+    }
+
+    #templateSection {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    #templateButtons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .template-button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: 2px solid #00796b;
+      border-radius: 20px;
+      background-color: white;
+      color: #00796b;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .template-button.selected,
+    .template-button:hover {
+      background-color: #00796b;
+      color: white;
+    }
+
+    .generate-button {
+      padding: 18px 36px;
+      font-size: 22px;
+      background: linear-gradient(135deg, #8e24aa, #d81b60);
+      color: white;
+      border: none;
+      border-radius: 30px 5px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+
+    .generate-button:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    }
+
+    #inputRow {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      max-width: 1000px;
+      width: 100%;
+    }
+
+    textarea {
+      flex: 1;
+      min-width: 300px;
+      max-width: 800px;
+      height: 120px;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 2px solid #ccc;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    #frameAndExplanation {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      margin-top: 20px;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    #outputFrame {
+      width: 55%;
+      height: 70vh;
+      border: 4px solid #00796b;
+      border-radius: 14px;
+    }
+
+    #gameExplanation {
+      flex: 1;
+      background: #fff;
+      border: 2px solid #00796b;
+      padding: 15px;
+      border-radius: 14px;
+      white-space: pre-wrap;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      min-width: 280px;
+      max-width: 500px;
+    }
+
+    #loader {
+      font-size: 2em;
+      margin-top: 20px;
+      display: none;
+      animation: pulse 1.2s infinite ease-in-out;
+      color: #00796b;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.1); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 What game do you want to create today?</h1>
+
+  <div id="inputRow">
+    <textarea id="gamePrompt" placeholder="Describe your game idea..."></textarea>
+    <button class="generate-button" onclick="surprisePrompt()">🎲 Surprise Me!</button>
+  </div>
+
+  <h3>Select a base game template then press Generate Game:</h3>
+  <div id="templateSection">
+    <div id="templateButtons">
+      <button class="template-button" onclick="setTemplate('jumper', this)">🦘 Infinite jumper</button>
+      <button class="template-button" onclick="setTemplate('runner', this)">🏃 Avoidance!</button>
+      <button class="template-button" onclick="setTemplate('rpg', this)">🧙 Explore a world</button>
+      <button class="template-button" onclick="setTemplate('heist', this)">🗡️ Battle!!</button>
+    </div>
+    <button class="generate-button" onclick="submitGame()">🚀 Generate Game</button>
+  </div>
+
+  <div id="loader">🧠✨ Creating your game...</div>
+
+  <div id="frameAndExplanation">
+    <iframe id="outputFrame"></iframe>
+    <div>
+      <h2 style="color:#00796b">🧠 Game Explanation</h2>
+      <pre id="gameExplanation"></pre>
+    </div>
+  </div>
+
+  <script>
+    let selectedTemplate = 'jumper';
+
+    const surprisePrompts = [
+      "A chaotic game about being a cat lawyer in space court",
+      "An infinite jumper where you're a pancake flipping through breakfastland",
+      "A stealth RPG where you're a snail trying to sneak past a garden gnome",
+      "A survival game where you dodge falling baguettes as a French mime",
+      "A wizard battle where your spells are all based on pasta shapes",
+      "An avoidance game where you’re a fish dodging emojis in a polluted river",
+      "A racing game where raccoons compete to steal trash in New York",
+      "Explore a haunted emoji castle filled with cursed desserts",
+      "A game where you're a ghost trying to collect your memories",
+      "A platformer where the floor is lava, and you're a marshmallow"
+    ];
+
+    function setTemplate(template, buttonElement) {
+      selectedTemplate = template;
+      document.querySelectorAll('.template-button').forEach(btn => btn.classList.remove('selected'));
+      buttonElement.classList.add('selected');
+    }
+
+    function surprisePrompt() {
+      const random = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
+      document.getElementById('gamePrompt').value = random;
+    }
+
+    async function submitGame() {
+      const prompt = document.getElementById('gamePrompt').value.trim();
+      if (!prompt) {
+        alert("Please enter a game idea first.");
+        return;
+      }
+
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('gameExplanation').innerText = '';
+
+      try {
+        const creationResponse = await fetch('/api/create-game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: prompt, template: selectedTemplate })
+        });
+
+        if (!creationResponse.ok) {
+          const errorText = await creationResponse.text();
+          throw new Error("Create-game failed: " + errorText);
+        }
+
+        const creationData = await creationResponse.json();
+        const cleanedHtml = creationData.htmlCode
+          .replace(/```html/i, '')
+          .replace(/```/g, '')
+          .trim();
+
+        const blob = new Blob([cleanedHtml], { type: 'text/html' });
+        document.getElementById('outputFrame').src = URL.createObjectURL(blob);
+
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('gameExplanation').innerText = creationData.explanation || 'No explanation received.';
+
+      } catch (err) {
+        document.getElementById('loader').style.display = 'none';
+        alert("⚠️ Something went wrong:\n" + err.message);
+        console.error("Error:", err);
+      }
+    }
+  </script>
+</body>
+</html>
