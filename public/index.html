@@ -149,7 +149,7 @@
     <button class="generate-button" onclick="surprisePrompt()">🎲 Surprise Me!</button>
   </div>
 
-  <h3>Select a base game template then press Generate Game:</h3>
+  <h3>Select a game template then press Generate Game:</h3>
   <div id="templateSection">
     <div id="templateButtons">
       <button class="template-button" onclick="setTemplate('jumper', this)">🦘 Infinite jumper</button>
@@ -161,6 +161,10 @@
   </div>
 
   <div id="loader">🧠✨ Creating your game...</div>
+  <p style="margin-top: 20px; font-size: 1.1rem; color: #004d40; text-align: center;">
+    🕹️ <strong>Tip:</strong> Use the arrow keys (← ↑ → ↓) to control your character in most games!
+  </p>
+  
 
   <div id="frameAndExplanation">
     <iframe id="outputFrame" onload="resizeIframe(this)" scrolling="no"></iframe>
@@ -175,7 +179,7 @@
 
     const surprisePrompts = [
       "A chaotic game about being a cat lawyer in space court",
-      "An infinite jumper where you're a pancake flipping through breakfastland",
+      "An gamewhere you're a pancake flipping through breakfastland",
       "A stealth RPG where you're a snail trying to sneak past a garden gnome",
       "A survival game where you dodge falling baguettes as a French mime",
       "A wizard battle where your spells are all based on pasta shapes",
