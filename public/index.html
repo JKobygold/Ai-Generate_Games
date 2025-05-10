@@ -173,6 +173,13 @@
       <pre id="gameExplanation"></pre>
     </div>
   </div>
+  <div id="modificationSection" style="display:none; margin-top: 30px; width: 100%; max-width: 800px;">
+    <h3>🛠 Would you like to modify the game?</h3>
+    <p>Write your additions or improvements here:</p>
+    <textarea id="modificationText" placeholder="e.g., Add dragons that appear after 30 seconds..." style="width: 100%; height: 100px;"></textarea>
+    <button class="generate-button" onclick="submitModification()">🔁 Apply Modification</button>
+  </div>
+  
 
   <script>
     let selectedTemplate = 'jumper';
@@ -248,6 +255,8 @@ document.getElementById('outputFrame').addEventListener('mouseleave', () => {
 
 
     async function submitGame() {
+
+      
       const prompt = document.getElementById('gamePrompt').value.trim();
       if (!prompt) {
         alert("Please enter a game idea first.");
@@ -262,6 +271,8 @@ document.getElementById('outputFrame').addEventListener('mouseleave', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ description: prompt, template: selectedTemplate })
+        
+        
         });
 
         if (!creationResponse.ok) {
@@ -286,7 +297,55 @@ document.getElementById('outputFrame').addEventListener('mouseleave', () => {
         alert("⚠️ Something went wrong:\n" + err.message);
         console.error("Error:", err);
       }
+      document.getElementById('modificationSection').style.display = 'block';
+window.currentGeneratedHTML = cleanedHtml;  // Store HTML for modification
+window.currentPrompt = prompt;    
     }
+    async function submitModification() {
+  const modText = document.getElementById('modificationText').value.trim();
+  if (!modText) {
+    alert("Please describe your modification.");
+    return;
+  }
+
+  document.getElementById('loader').style.display = 'block';
+  document.getElementById('gameExplanation').innerText = '';
+  
+  try {
+    const modificationResponse = await fetch('/api/create-game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description: window.currentPrompt + "\n\nMODIFICATION:\n" + modText,
+        userHtml: window.currentGeneratedHTML,
+        template: selectedTemplate
+      })
+    });
+
+    if (!modificationResponse.ok) {
+      const errorText = await modificationResponse.text();
+      throw new Error("Modification failed: " + errorText);
+    }
+
+    const modData = await modificationResponse.json();
+    const newHtml = modData.htmlCode.replace(/```html/i, '').replace(/```/g, '').trim();
+
+    const blob = new Blob([newHtml], { type: 'text/html' });
+    document.getElementById('outputFrame').src = URL.createObjectURL(blob);
+
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('gameExplanation').innerText = modData.explanation || 'No explanation received.';
+    
+    window.currentGeneratedHTML = newHtml; // Save for potential future edits
+    document.getElementById('modificationText').value = ''; // Clear field
+
+  } catch (err) {
+    document.getElementById('loader').style.display = 'none';
+    alert("⚠️ Error modifying game:\n" + err.message);
+    console.error("Error:", err);
+  }
+}
+
   </script>
 </body>
 </html>
