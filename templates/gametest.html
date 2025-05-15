@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🌍 Emoji RPG - Enhanced</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #game {
+      display: grid;
+      grid-template-columns: repeat(16, 2em);
+      grid-template-rows: repeat(16, 2em);
+      gap: 1px;
+      margin-top: 20px;
+    }
+    .tile {
+      width: 2em;
+      height: 2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4em;
+    }
+    #info {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌍 Emoji RPG - Enhanced</h1>
+  <div id="info">
+    🍗 Fullness: <span id="fullness">0</span> / 5 |
+    💰 Wealth: <span id="wealth">10</span> |
+    ❤️ Health: <span id="health">5</span> / 5
+  </div>
+  <div id="game"></div>
+  <p id="message"></p>
+
+  <!-- FULL SCRIPT STARTS HERE -->
+  <script>
+    const size = 16;
+    const game = document.getElementById('game');
+    const message = document.getElementById('message');
+    const fullnessEl = document.getElementById('fullness');
+    const wealthEl = document.getElementById('wealth');
+    const healthEl = document.getElementById('health');
+
+    let fullness = 0;
+    let wealth = 10;
+    let health = 5;
+
+    const grid = Array.from({ length: size }, () => Array(size).fill('🟫'));
+    const player = { x: 1, y: 1 };
+    const npcs = [];
+    const enemies = [];
+    const animals = ['🐶', '🐱', '🐔', '🐮', '🐸'];
+    const animalSounds = {
+      '🐶': 'https://www.soundjay.com/animal/dog-bark-01.mp3',
+      '🐱': 'https://www.soundjay.com/animal/cat-meow-1.mp3',
+      '🐔': 'https://www.soundjay.com/animal/rooster-1.mp3',
+      '🐮': 'https://www.soundjay.com/animal/cow-moo-1.mp3',
+      '🐸': 'https://www.soundjay.com/animal/frog-1.mp3',
+    };
+    const foods = ['🌽', '🌾'];
+    const treasures = ['💎'];
+    let dogQuest = { given: false, found: false, returned: false, x: 0, y: 0 };
+    let inRace = false;
+    let raceGoal = null;
+    let currentNpc = null;
+
+    for (let i = 0; i < size; i++) {
+      grid[0][i] = grid[size - 1][i] = grid[i][0] = grid[i][size - 1] = '🌳';
+    }
+
+    function getRandomDialogue(type) {
+      const lines = [
+        '🤖 It’s tough being an NPC...',
+        '🎭 Is this all just a performance?',
+        '🧠 Lore of the land!',
+        '🍄 The mushroom people are real.',
+        '🏁 Wanna race?',
+        '🐶 Hey, can you find my dog?',
+        '🏪 Welcome to the shop! Press B to heal for 💰5!'
+      ];
+      if (type === 'race') return lines[4];
+      if (type === 'quest') return lines[5];
+      if (type === 'shop') return lines[6];
+      return lines[Math.floor(Math.random() * 4)];
+    }
+
+    function populateWorld() {
+      for (let y = 1; y < size - 1; y++) {
+        for (let x = 1; x < size - 1; x++) {
+          const rand = Math.random();
+          if (rand < 0.05) grid[y][x] = foods[Math.floor(Math.random() * foods.length)];
+          else if (rand < 0.07) grid[y][x] = treasures[0];
+          else if (rand < 0.09) {
+            grid[y][x] = '👹';
+            enemies.push({ x, y });
+          } else if (rand < 0.12) {
+            const emoji = ['👨', '👩', '🧑', '🧔'][Math.floor(Math.random() * 4)];
+            const type = rand < 0.04 ? 'quest' : rand < 0.06 ? 'race' : rand < 0.08 ? 'shop' : 'normal';
+            npcs.push({ x, y, emoji, type, dialog: getRandomDialogue(type) });
+            grid[y][x] = emoji;
+          } else if (rand < 0.14) grid[y][x] = '🌳';
+          else if (rand < 0.16) grid[y][x] = animals[Math.floor(Math.random() * animals.length)];
+        }
+      }
+    }
+
+    function render() {
+      game.innerHTML = '';
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const tile = document.createElement('div');
+          tile.className = 'tile';
+          tile.textContent = (x === player.x && y === player.y) ? '🙂' : grid[y][x];
+          game.appendChild(tile);
+        }
+      }
+      fullnessEl.textContent = fullness;
+      wealthEl.textContent = wealth;
+      healthEl.textContent = health;
+    }
+
+    function isNPCAt(x, y) {
+      return npcs.some(n => n.x === x && n.y === y);
+    }
+
+    function interact(cell, x, y) {
+      if (foods.includes(cell)) {
+        if (fullness < 5) {
+          fullness++;
+          grid[y][x] = '🟫';
+          message.textContent = '🍽️ You ate something!';
+        }
+      } else if (cell === '💎') {
+        const gold = Math.floor(Math.random() * 10 + 5);
+        wealth += gold;
+        grid[y][x] = '🟫';
+        message.textContent = `💰 You found a treasure! +${gold}💰`;
+      } else if (cell === '👹') {
+        health--;
+        if (health <= 0) {
+          message.textContent = '💀 You were defeated by an enemy!';
+          document.removeEventListener('keydown', handleKey);
+        } else {
+          message.textContent = '⚔️ An enemy hit you! -1❤️';
+        }
+      } else if (cell === '🐶' && dogQuest.given && !dogQuest.found) {
+        dogQuest.found = true;
+        grid[y][x] = '🟫';
+        message.textContent = '🐕 You found the dog! Return it!';
+      } else if (cell === '🟥' && inRace) {
+        inRace = false;
+        wealth += 10;
+        grid[y][x] = '🟫';
+        message.textContent = '🏆 Race complete! +10💰';
+      }
+    }
+
+    function playAnimalSoundAround(px, py) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const ax = px + dx, ay = py + dy;
+          if (ax >= 0 && ax < size && ay >= 0 && ay < size) {
+            const emoji = grid[ay][ax];
+            if (animals.includes(emoji)) {
+              const soundUrl = animalSounds[emoji];
+              if (soundUrl) {
+                const audio = new Audio(soundUrl);
+                audio.volume = 0.2;
+                audio.play().catch(() => {});
+                message.textContent = `${emoji} makes a sound!`;
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function move(dx, dy) {
+      const nx = player.x + dx;
+      const ny = player.y + dy;
+      if (nx < 0 || ny < 0 || nx >= size || ny >= size) return;
+      const nextCell = grid[ny][nx];
+      if (
+        nextCell === '🌳' ||
+        animals.includes(nextCell) ||
+        nextCell === '👹' ||
+        isNPCAt(nx, ny)
+      ) {
+        message.textContent = `🚫 You can't walk there!`;
+        return;
+      }
+
+      interact(nextCell, nx, ny);
+      playAnimalSoundAround(nx, ny);
+
+      player.x = nx;
+      player.y = ny;
+
+      currentNpc = null;
+      for (const npc of npcs) {
+        if (Math.abs(npc.x - player.x) + Math.abs(npc.y - player.y) === 1) {
+          currentNpc = npc;
+          message.innerHTML = `💬 ${npc.dialog}<br>A. Say hi!<br>B. ${
+            npc.type === 'quest' ? 'Accept quest' :
+            npc.type === 'race' ? 'Race (💰5)' :
+            npc.type === 'shop' ? 'Heal (💰5)' : '...'}`;
+          break;
+        }
+      }
+
+      render();
+    }
+
+    function giveDogQuest() {
+      dogQuest.given = true;
+      let dx, dy;
+      do {
+        dx = Math.floor(Math.random() * (size - 2)) + 1;
+        dy = Math.floor(Math.random() * (size - 2)) + 1;
+      } while (grid[dy][dx] !== '🟫');
+      dogQuest.x = dx;
+      dogQuest.y = dy;
+      grid[dy][dx] = '🐶';
+      message.textContent = '🐾 Dog spawned! Go find it!';
+    }
+
+    function returnDog() {
+      if (dogQuest.given && dogQuest.found && !dogQuest.returned) {
+        dogQuest.returned = true;
+        wealth += 15;
+        message.textContent = '🎉 You returned the dog! +15💰';
+      }
+    }
+
+    function startRace() {
+      if (wealth < 5) {
+        message.textContent = '❌ Not enough money to race!';
+        return;
+      }
+      wealth -= 5;
+      inRace = true;
+      let gx, gy;
+      do {
+        gx = Math.floor(Math.random() * (size - 2)) + 1;
+        gy = Math.floor(Math.random() * (size - 2)) + 1;
+      } while (grid[gy][gx] !== '🟫');
+      raceGoal = { x: gx, y: gy };
+      grid[gy][gx] = '🟥';
+      message.textContent = '🏁 Race started! Find the red square!';
+    }
+
+    function healPlayer() {
+      if (wealth >= 5 && health < 5) {
+        wealth -= 5;
+        health = 5;
+        message.textContent = '🧪 You feel refreshed!';
+      } else {
+        message.textContent = '⚠️ Can’t heal now.';
+      }
+    }
+
+    function handleKey(e) {
+      if (e.key === 'ArrowUp') move(0, -1);
+      else if (e.key === 'ArrowDown') move(0, 1);
+      else if (e.key === 'ArrowLeft') move(-1, 0);
+      else if (e.key === 'ArrowRight') move(1, 0);
+      else if (currentNpc) {
+        if (e.key.toLowerCase() === 'a') {
+          message.textContent = `👋 ${currentNpc.dialog}`;
+        } else if (e.key.toLowerCase() === 'b') {
+          if (currentNpc.type === 'quest') {
+            if (!dogQuest.given) giveDogQuest();
+            else if (dogQuest.found && !dogQuest.returned) returnDog();
+          }
+          else if (currentNpc.type === 'race') startRace();
+          else if (currentNpc.type === 'shop') healPlayer();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKey);
+    populateWorld();
+    render();
+  </script>
+  <!-- SCRIPT ENDS -->
+</body>
+</html>
