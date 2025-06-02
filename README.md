@@ -1,3 +1,7 @@
+winner of the Code & Coffee Philly Tech Week Hackathon. Generative Game System challange 
+
+
+
 # Ai-Generate_Games
 
 Here is the deployed app: https://ai-generate-games.onrender.com/
