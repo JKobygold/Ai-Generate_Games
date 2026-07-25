@@ -1,3 +1,7 @@
+Note: API of LLM not hooked up. Need to return to app later. System is effectivly inert until further notice
+
+
+
 winner of the Code & Coffee Philly Tech Week Hackathon. Generative Game System challange 
 
 
