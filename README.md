@@ -1,4 +1,4 @@
-Note: API of LLM not hooked up. Need to return to app later. System is effectivly inert until further notice
+Note: API of LLM not hooked up at present moment. Need to return to app later. System is effectivly inert until further notice
 
 
 
